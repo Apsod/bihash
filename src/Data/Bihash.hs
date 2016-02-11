@@ -2,7 +2,8 @@
 {-# LANGUAGE BangPatterns #-}
 
 module Data.Bihash
-       ( op
+       ( Bihash
+       , op
        , fw
        , bw
        , empty
@@ -26,7 +27,7 @@ import Data.Semigroupoid
 import Data.Bifunctor
 
 data Bihash a b where
-  Bihash :: (Eq a, Hashable a, Eq b, Hashable b) => {-# UNPACK #-} !(HashMap a b) -> {-# UNPACK #-}!(HashMap b a) -> Bihash a b
+  Bihash :: (Eq a, Hashable a, Eq b, Hashable b) => {-# UNPACK #-}!(HashMap a b) -> {-# UNPACK #-}!(HashMap b a) -> Bihash a b
 
 empty :: (Eq a, Hashable a, Eq b, Hashable b) => Bihash a b
 empty = Bihash HM.empty HM.empty
