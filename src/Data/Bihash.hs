@@ -15,6 +15,8 @@ module Data.Bihash
        , mapMaybe
        , filter
        , lookup
+       , lookups
+       , restrict
        , member
        ) where
 
@@ -53,7 +55,7 @@ fromList xs = let assertInj :: (Eq a, Hashable a) => [(a,b)] -> Maybe (HashMap a
                   swap (a,b) = (b,a)
               in Bihash <$> assertInj xs <*> assertInj (fmap swap xs)
 
-insert :: (Eq a, Hashable a, Eq b, Hashable b) => a -> b -> Bihash a b -> Maybe (Bihash a b)
+insert :: a -> b -> Bihash a b -> Maybe (Bihash a b)
 insert a b (Bihash ab ba) = if HM.member a ab || HM.member b ba then Nothing else Just $ Bihash (HM.insert a b ab) (HM.insert b a ba)
 
 size :: Bihash a b -> Int
@@ -67,6 +69,12 @@ op (Bihash ab ba) = Bihash ba ab
 
 lookup :: Bihash a b -> Either a b -> Maybe (a,b)
 lookup (Bihash ab ba) = either (\a -> (a,) <$> HM.lookup a ab) (\b -> (,b) <$> HM.lookup b ba)
+
+lookups :: Bihash a b -> [Either a b] -> [Maybe (a, b)]
+lookups = fmap . lookup
+
+restrict :: Bihash a b -> [Either a b] -> Maybe (Bihash a b)
+restrict bh@(Bihash _ _) = (>>= fromList) . sequenceA . lookups bh
 
 member :: Bihash a b -> Either a b -> Bool
 member (Bihash ab ba) = either (\a -> HM.member a ab) (\b -> HM.member b ba)
