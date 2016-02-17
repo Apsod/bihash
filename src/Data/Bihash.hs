@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE BangPatterns #-}
-
+{-# LANGUAGE TupleSections #-}
 module Data.Bihash
        ( Bihash
        , op
@@ -14,6 +14,8 @@ module Data.Bihash
        , size
        , mapMaybe
        , filter
+       , lookup
+       , member
        ) where
 
 import Prelude hiding (filter , lookup, (.),id)
@@ -33,6 +35,11 @@ data Bihash a b where
 
 instance (NFData a, NFData b) => NFData (Bihash a b) where
   rnf (Bihash ab ba) = rnf ab `seq` rnf ba
+
+instance Semigroupoid Bihash where
+   (Bihash bc cb) `o` (Bihash ab ba) = let ba' = ($ba) . HM.lookup
+                                           bc' = ($bc) . HM.lookup
+                                       in Bihash (mapMaybe bc' ab) (mapMaybe ba' cb)
 
 empty :: (Eq a, Hashable a, Eq b, Hashable b) => Bihash a b
 empty = Bihash HM.empty HM.empty
@@ -58,6 +65,12 @@ toList (Bihash ab _) = HM.toList ab
 op :: Bihash a b -> Bihash b a
 op (Bihash ab ba) = Bihash ba ab
 
+lookup :: Bihash a b -> Either a b -> Maybe (a,b)
+lookup (Bihash ab ba) = either (\a -> (a,) <$> HM.lookup a ab) (\b -> (,b) <$> HM.lookup b ba)
+
+member :: Bihash a b -> Either a b -> Bool
+member (Bihash ab ba) = either (\a -> HM.member a ab) (\b -> HM.member b ba)
+
 fw :: Bihash a b -> a -> Maybe b
 fw (Bihash ab _) = ($ab) . HM.lookup
 
@@ -66,11 +79,6 @@ bw (Bihash _ ba) = ($ba) . HM.lookup
 
 filter :: (a -> b -> Bool) -> Bihash a b -> Bihash a b
 filter p (Bihash ab ba) = Bihash (HM.filterWithKey p ab) (HM.filterWithKey (flip  p) ba)
-
-instance Semigroupoid Bihash where
-  (Bihash bc cb) `o` (Bihash ab ba) = let ba' = ($ba) . HM.lookup
-                                          bc' = ($bc) . HM.lookup
-                                      in Bihash (mapMaybe bc' ab) (mapMaybe ba' cb)
 
 mapMaybe :: (a -> Maybe b) -> HashMap k a -> HashMap k b
 mapMaybe f = fmap fromJust . HM.filter isJust . fmap f
