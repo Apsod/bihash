@@ -26,8 +26,13 @@ import Data.Maybe hiding (mapMaybe)
 import Data.Semigroupoid
 import Data.Bifunctor
 
+import Control.DeepSeq
+
 data Bihash a b where
-  Bihash :: (Eq a, Hashable a, Eq b, Hashable b) => {-# UNPACK #-}!(HashMap a b) -> {-# UNPACK #-}!(HashMap b a) -> Bihash a b
+  Bihash :: (Eq a, Hashable a, Eq b, Hashable b) => !(HashMap a b) -> !(HashMap b a) -> Bihash a b
+
+instance (NFData a, NFData b) => NFData (Bihash a b) where
+  rnf (Bihash ab ba) = rnf ab `seq` rnf ba
 
 empty :: (Eq a, Hashable a, Eq b, Hashable b) => Bihash a b
 empty = Bihash HM.empty HM.empty
